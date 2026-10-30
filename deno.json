@@ -1,0 +1,13 @@
+{
+	"tasks": {
+		"bundle": "deno bundle main.ts --minify --format cjs -o omitempty.cjs"
+	},
+	"imports": {
+		"@std/assert": "jsr:@std/assert@1",
+		"@std/cli": "jsr:@std/cli@1"
+	},
+	"fmt": {
+		"useTabs": true,
+		"lineWidth": 120
+	}
+}
