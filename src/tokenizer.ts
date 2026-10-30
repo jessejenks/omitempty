@@ -43,14 +43,16 @@ export const enum TokenKind {
 	Comma,
 	Semi,
 	Equal,
-	Comment,
+	LineComment,
+	BlockComment,
 	StringLiteral,
 	Identifier,
 	Keyword,
 }
 
 export type Identifier = { kind: TokenKind.Identifier; value: string; start: number };
-export type Comment = { kind: TokenKind.Comment; value: string; start: number };
+export type LineComment = { kind: TokenKind.LineComment; value: string; start: number };
+export type BlockComment = { kind: TokenKind.BlockComment; value: string; start: number };
 export type StringLiteral = { kind: TokenKind.StringLiteral; value: string; start: number };
 export type Keyword = { kind: TokenKind.Keyword; keyword: KeywordKind; start: number };
 export type Semi = { kind: TokenKind.Semi; start?: number }; // start is undefined when automatically inserted
@@ -58,13 +60,14 @@ export type GeneralToken = {
 	kind: Exclude<
 		TokenKind,
 		| TokenKind.Identifier
-		| TokenKind.Comment
+		| TokenKind.LineComment
+		| TokenKind.BlockComment
 		| TokenKind.StringLiteral
 		| TokenKind.Keyword
 		| TokenKind.Semi
 	>;
 } & { start: number };
-export type Token = Identifier | Comment | StringLiteral | Keyword | Semi | GeneralToken;
+export type Token = Identifier | LineComment | BlockComment | StringLiteral | Keyword | Semi | GeneralToken;
 
 const TOKEN_KIND_NAME: Record<TokenKind, string> = {
 	[TokenKind.EOF]: "<eof>",
@@ -79,7 +82,8 @@ const TOKEN_KIND_NAME: Record<TokenKind, string> = {
 	[TokenKind.Comma]: "','",
 	[TokenKind.Semi]: "';'",
 	[TokenKind.Equal]: "'='",
-	[TokenKind.Comment]: "<comment>",
+	[TokenKind.LineComment]: "<line comment>",
+	[TokenKind.BlockComment]: "<block comment>",
 	[TokenKind.StringLiteral]: "<string literal>",
 	[TokenKind.Identifier]: "<identifier>",
 	[TokenKind.Keyword]: "<keyword>",
@@ -94,7 +98,7 @@ export function tokenToString(token: Token): string {
 		case TokenKind.Keyword:
 			return KEYWORD_NAME[token.keyword];
 		case TokenKind.Identifier:
-		case TokenKind.Comment:
+		case TokenKind.LineComment:
 		case TokenKind.StringLiteral:
 			return token.value;
 		default:
@@ -147,7 +151,7 @@ export class Tokenizer {
 
 	protected getNextToken(): Token {
 		const token = this.scanNextToken();
-		if (token.kind !== TokenKind.Comment) {
+		if (token.kind !== TokenKind.LineComment) {
 			this.lastKind = token.kind;
 		}
 		return token;
@@ -200,6 +204,8 @@ export class Tokenizer {
 			case "/":
 				if (this.charPeek() === "/") {
 					return this.lineComment(start);
+				} else if (this.charPeek() === "*") {
+					return this.blockComment(start);
 				}
 				break;
 			case '"':
@@ -213,16 +219,33 @@ export class Tokenizer {
 		return this.identifierOrKeyword(start);
 	}
 
-	protected lineComment(start: number): Comment {
-		this.index++;
-		this.index++;
+	protected lineComment(start: number): LineComment {
+		this.index += 2;
 		while (
 			this.index < this.input.length && this.char() !== "\n"
 		) {
 			this.index++;
 		}
 		return {
-			kind: TokenKind.Comment,
+			kind: TokenKind.LineComment,
+			value: this.input.slice(start, this.index),
+			start,
+		};
+	}
+
+	protected blockComment(start: number): BlockComment {
+		this.index += 2;
+		while (
+			this.index < this.input.length
+		) {
+			if (this.char() === "*" && this.charPeek() === "/") {
+				this.index += 2;
+				break;
+			}
+			this.index++;
+		}
+		return {
+			kind: TokenKind.BlockComment,
 			value: this.input.slice(start, this.index),
 			start,
 		};

@@ -21,6 +21,10 @@ Deno.test("Tokenizer", async function (t) {
 	identifier
 	identifier123_foo
 	// trailing comment
+	/*
+	 * block
+	 * comment
+	 */
 `);
 
 		const expected: Token[] = [
@@ -34,8 +38,8 @@ Deno.test("Tokenizer", async function (t) {
 			{ kind: TokenKind.Dot, start: 12 },
 			{ kind: TokenKind.Comma, start: 14 },
 			{ kind: TokenKind.Semi, start: 16 },
-			{ kind: TokenKind.Comment, value: "// comment (){}[]*.,;", start: 18 },
-			{ kind: TokenKind.Comment, value: "// another comment", start: 41 },
+			{ kind: TokenKind.LineComment, value: "// comment (){}[]*.,;", start: 18 },
+			{ kind: TokenKind.LineComment, value: "// another comment", start: 41 },
 			{ kind: TokenKind.StringLiteral, value: `"arbitrary string \\" with escapes"`, start: 61 },
 			{ kind: TokenKind.Semi }, // inserted
 			{ kind: TokenKind.StringLiteral, value: `'arbitrary string \\' with escapes'`, start: 97 },
@@ -56,10 +60,11 @@ Deno.test("Tokenizer", async function (t) {
 			{ kind: TokenKind.Semi }, // inserted
 			{ kind: TokenKind.Identifier, value: "identifier123_foo", start: 272 },
 			{ kind: TokenKind.Semi }, // inserted
-			{ kind: TokenKind.Comment, value: "// trailing comment", start: 291 },
-			{ kind: TokenKind.EOF, start: 311 },
-			{ kind: TokenKind.EOF, start: 311 },
-			{ kind: TokenKind.EOF, start: 311 },
+			{ kind: TokenKind.LineComment, value: "// trailing comment", start: 291 },
+			{ kind: TokenKind.BlockComment, value: "/*\n\t * block\n\t * comment\n\t */", start: 312 },
+			{ kind: TokenKind.EOF, start: 342 },
+			{ kind: TokenKind.EOF, start: 342 },
+			{ kind: TokenKind.EOF, start: 342 },
 		];
 
 		const actual = new Array<Token>(expected.length);

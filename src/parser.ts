@@ -74,9 +74,9 @@ export class Parser {
 	protected captureComments(): string[] {
 		let comments: string[] = [];
 		let tok = this.lexer.peek();
-		while (tok.kind === TokenKind.Comment) {
+		while (tok.kind === TokenKind.LineComment || tok.kind === TokenKind.BlockComment) {
 			this.lexer.next();
-			comments.push(tok.value.slice(2).trim());
+			comments.push(tok.value);
 			const end = tok.start + tok.value.length;
 			tok = this.lexer.peek();
 			// a blank line detaches the comments so far from whatever comes next
@@ -233,7 +233,8 @@ export class Parser {
 			case TokenKind.Semi:
 			case TokenKind.RBrace:
 			case TokenKind.StringLiteral:
-			case TokenKind.Comment:
+			case TokenKind.LineComment:
+			case TokenKind.BlockComment:
 				return this.parseEmbeddedField(leadingComments, first);
 			default: {
 				const names = [first.value];
@@ -284,7 +285,8 @@ export class Parser {
 			case TokenKind.Semi:
 			case TokenKind.RBrace:
 			case TokenKind.StringLiteral:
-			case TokenKind.Comment:
+			case TokenKind.LineComment:
+			case TokenKind.BlockComment:
 				return {
 					kind: FieldKind.Embedded,
 					isPointer,

@@ -280,7 +280,7 @@ Deno.test("Parser", async function (t) {
 			assertEquals(parser.parseStructType(), {
 				kind: TypeExprKind.Struct,
 				fields: [],
-				endComments: ["empty with comment"],
+				endComments: ["// empty with comment"],
 			});
 			parser.lexer.setInput("struct { X int }");
 			assertEquals(parser.parseStructType(), {
@@ -295,38 +295,38 @@ Deno.test("Parser", async function (t) {
 				}],
 				endComments: [],
 			});
-			parser.lexer.setInput("struct { // captured by X\n  X int // captured by X\n  // end comments \n}");
+			parser.lexer.setInput("struct { // captured by X\n  X int // captured by X\n  // end comments\n}");
 			assertEquals(parser.parseStructType(), {
 				kind: TypeExprKind.Struct,
 				fields: [{
 					kind: FieldKind.Struct,
-					leadingComments: ["captured by X"],
+					leadingComments: ["// captured by X"],
 					names: ["X"],
 					tp: { kind: TypeExprKind.Named, pkg: null, name: "int", args: [] },
 					tag: null,
-					trailingComments: ["captured by X"],
+					trailingComments: ["// captured by X"],
 				}],
-				endComments: ["end comments"],
+				endComments: ["// end comments"],
 			});
 			parser.lexer.setInput(
-				"struct { // captured by X\n  X int\n  // captured by Y\n  Y string // captured by Y \n}",
+				"struct { // captured by X\n  X int\n  // captured by Y\n  Y string // captured by Y\n}",
 			);
 			assertEquals(parser.parseStructType(), {
 				kind: TypeExprKind.Struct,
 				fields: [{
 					kind: FieldKind.Struct,
-					leadingComments: ["captured by X"],
+					leadingComments: ["// captured by X"],
 					names: ["X"],
 					tp: { kind: TypeExprKind.Named, pkg: null, name: "int", args: [] },
 					tag: null,
 					trailingComments: [],
 				}, {
 					kind: FieldKind.Struct,
-					leadingComments: ["captured by Y"],
+					leadingComments: ["// captured by Y"],
 					names: ["Y"],
 					tp: { kind: TypeExprKind.Named, pkg: null, name: "string", args: [] },
 					tag: null,
-					trailingComments: ["captured by Y"],
+					trailingComments: ["// captured by Y"],
 				}],
 				endComments: [],
 			});
@@ -371,6 +371,14 @@ Deno.test("Parser", async function (t) {
 				endComments: [],
 			});
 		});
+
+		await t.step("interface type", function () {
+			parser.lexer.setInput(`\
+				interface { }`);
+			assertEquals(parser.parseInterfaceType(), {
+				kind: TypeExprKind.Interface,
+			});
+		});
 	});
 
 	await t.step("type declarations", function () {
@@ -379,7 +387,9 @@ Deno.test("Parser", async function (t) {
 // DO NOT EDIT
 // Copyright 2026
 
-// Foo is used for XYZ purpose
+/**
+ * Foo is used for XYZ purpose
+ */
 type Foo struct{} // this is attached to this declaration
 
 // but this is not
@@ -390,14 +400,14 @@ type Baz map[foo.Bar]struct{ X; Y int; Z; foo.W }
 type Alias = Bar
 	`),
 			[{
-				leadingComments: ["Foo is used for XYZ purpose"],
+				leadingComments: ["/**\n * Foo is used for XYZ purpose\n */"],
 				name: "Foo",
 				params: [],
 				isAlias: false,
 				tp: { kind: TypeExprKind.Struct, fields: [], endComments: [] },
-				trailingComments: ["this is attached to this declaration"],
+				trailingComments: ["// this is attached to this declaration"],
 			}, {
-				leadingComments: ["but this is not"],
+				leadingComments: ["// but this is not"],
 				name: "Bar",
 				params: [],
 				isAlias: false,

@@ -144,7 +144,7 @@ Deno.test("Lower", async function (t) {
 			assertEquals(lowerType("type Foo struct {\n// about Embedded\nEmbedded\n}"), {
 				kind: TypeExprKind.Intersection,
 				members: [{
-					leadingComments: ["about Embedded"],
+					leadingComments: ["// about Embedded"],
 					tp: { kind: TypeExprKind.Ref, name: "Embedded", args: [] },
 					trailingComments: [],
 				}],
@@ -154,7 +154,7 @@ Deno.test("Lower", async function (t) {
 				members: [{
 					leadingComments: [],
 					tp: { kind: TypeExprKind.Ref, name: "Embedded", args: [] },
-					trailingComments: ["trailing"],
+					trailingComments: ["// trailing"],
 				}],
 			});
 			assertEquals(lowerType("type Foo struct {\nEmbedded\n// end\n}"), {
@@ -162,7 +162,7 @@ Deno.test("Lower", async function (t) {
 				members: [
 					{
 						leadingComments: [],
-						tp: { kind: TypeExprKind.Object, fields: [], endComments: ["end"] },
+						tp: { kind: TypeExprKind.Object, fields: [], endComments: ["// end"] },
 						trailingComments: [],
 					},
 					{ leadingComments: [], tp: { kind: TypeExprKind.Ref, name: "Embedded", args: [] }, trailingComments: [] },

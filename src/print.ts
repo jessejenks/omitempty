@@ -241,14 +241,14 @@ export class Printer {
 	printLeadingComments(comments: string[]) {
 		for (let i = 0; i < comments.length; i++) {
 			this.writer.ensureNewline();
-			this.writer.write(`// ${comments[i]}`);
+			this.writer.write(comments[i]);
 			this.writer.newline();
 		}
 	}
 
 	printTrailingComments(comments: string[]) {
 		for (let i = 0; i < comments.length; i++) {
-			this.writer.writeDeferred(` // ${comments[i]}`);
+			this.writer.writeDeferred(` ${comments[i]}`);
 		}
 	}
 }
