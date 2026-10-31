@@ -1,5 +1,7 @@
 # Omitempty
 
+![Tests](https://github.com/jessejenks/omitempty/actions/workflows/test.yml/badge.svg)
+
 Tool to migrate go type definitions to TS types.
 
 This tool currently only handles types that could be converted to JSON. So this will fail on non-empty interface types,

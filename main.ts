@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import denojson from "./deno.json" with { type: "json" };
 import { parseArgs } from "@std/cli/parse-args";
 import fs from "node:fs";
 import process from "node:process";
@@ -7,9 +8,21 @@ import { lower, LowerOptions } from "./src/lower.ts";
 import { Parser } from "./src/parser.ts";
 import { Printer, Writer } from "./src/print.ts";
 
+function version() {
+	console.error(`v${denojson.version}`);
+}
+
+function help() {
+	console.error(`omitempty v${denojson.version}`);
+	console.error("  <input.go>                input go file");
+	console.error("  --spaces   [n]            output with indentation of n spaces instead of tab characters");
+	console.error("  --config   <config.json>  optional config file");
+	console.error("  --sub      [from=to]      inline named type substitutions, can be passed multiple times");
+}
+
 function usage() {
 	console.error(
-		"Usage: deno run --allow-read main.ts <input.go> [--config <config.json>] [--spaces n] [--sub from=to]+",
+		"Usage: omitempty <input.go> [--config <config.json>] [--spaces n] [--sub from=to]+",
 	);
 }
 
@@ -48,7 +61,22 @@ function getSubstitutionOverrides(subs: string[]): LowerOptions["substitutions"]
 	return overrides;
 }
 
-const args = parseArgs(process.argv.slice(2), { string: ["config", "spaces", "sub"], collect: ["sub"] });
+const args = parseArgs(process.argv.slice(2), {
+	boolean: ["help", "version"],
+	string: ["config", "spaces", "sub"],
+	collect: ["sub"],
+});
+
+if (args.help) {
+	help();
+	process.exit(0);
+}
+
+if (args.version) {
+	version();
+	process.exit(0);
+}
+
 const inputPath = args._[0];
 if (typeof inputPath !== "string") {
 	usage();
