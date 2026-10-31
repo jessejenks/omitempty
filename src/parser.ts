@@ -91,7 +91,7 @@ export class Parser {
 		this.input = input;
 		this.lexer.setInput(input);
 		const decls: TypeDecl[] = [];
-		const pattern = /^(\s*\/\/|type)/gm;
+		const pattern = /^([\t ]*\/\/|type)/gm;
 		let match: RegExpExecArray | null = null;
 		while ((match = pattern.exec(input)) !== null) {
 			this.lexer.setIndex(match.index);
@@ -102,24 +102,49 @@ export class Parser {
 				tok.keyword === KeywordKind.Type
 			) {
 				this.lexer.next();
-				// grouped declarations not supported
-				// type ( Foo int; Bar string )
-				const name = this.expect(TokenKind.Identifier);
-				// params not supported
-				const isAlias = this.chompIfNextIs(TokenKind.Equal);
-				decls.push({
-					leadingComments,
-					name: name.value,
-					params: [],
-					isAlias,
-					tp: this.parseType(),
-					trailingComments: this.captureComments(),
-				});
+				const peek = this.lexer.peek();
+				switch (peek.kind) {
+					case TokenKind.LParen:
+						decls.push(...this.parseGroupedTypeDeclaration(leadingComments));
+						break;
+					case TokenKind.Identifier:
+						decls.push(this.parseTypeDeclaration(leadingComments));
+						break;
+					default:
+						this.lexer.croak("Parse", `unexpected token ${tokenToString(peek)}`, peek.start!);
+				}
 				pattern.lastIndex = this.lexer.getIndex();
 			}
 			continue;
 		}
 		return decls;
+	}
+
+	parseGroupedTypeDeclaration(leadingComments: string[]): TypeDecl[] {
+		this.expect(TokenKind.LParen);
+		const decls = [this.parseTypeDeclaration(leadingComments)];
+		while (this.chompIfNextIs(TokenKind.Semi)) {
+			if (this.lexer.peek().kind === TokenKind.RParen) {
+				break;
+			}
+			decls.push(this.parseTypeDeclaration([]));
+		}
+		this.expect(TokenKind.RParen);
+		return decls;
+	}
+
+	parseTypeDeclaration(leadingComments: string[]): TypeDecl {
+		const name = this.expect(TokenKind.Identifier);
+		// params not supported
+		const isAlias = this.chompIfNextIs(TokenKind.Equal);
+		return {
+			leadingComments,
+			name: name.value,
+			params: [],
+			isAlias,
+			tp: this.parseType(),
+			trailingComments: this.captureComments(),
+		};
 	}
 
 	parseType(): TypeExpr {

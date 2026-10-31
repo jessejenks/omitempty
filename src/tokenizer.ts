@@ -338,28 +338,59 @@ export class Tokenizer {
 		return this.input[this.index + 1];
 	}
 
-	croak(prefix: string, msg: string, start: number): never {
+	messageAt(msg: string, start: number, before = 0, after = 0): string {
 		start = Math.min(Math.max(0, start), this.input.length - 1);
-		let currLineStart = 0;
-		for (let i = start; i >= 0; i--) {
+		let currentLineStartPos = 0;
+		let firstLineStartPos = 0;
+		let beforeCount = 0;
+		for (let i = start - 1; i >= 0; i--) {
 			if (this.input[i] === "\n") {
-				currLineStart = i;
+				firstLineStartPos = i + 1;
+				if (beforeCount === 0) {
+					currentLineStartPos = firstLineStartPos;
+				}
+				if (beforeCount < before) {
+					firstLineStartPos = 0;
+					beforeCount++;
+					continue;
+				}
 				break;
 			}
 		}
-		let currLineEnd = -1;
+		let currentLineEndPos = this.input.length;
+		let lastLineEndPos = this.input.length;
+		let afterCount = 0;
 		for (let i = start; i < this.input.length; i++) {
 			if (this.input[i] === "\n") {
-				currLineEnd = i;
+				lastLineEndPos = i;
+				if (afterCount === 0) {
+					currentLineEndPos = lastLineEndPos;
+				}
+				if (afterCount < after) {
+					afterCount++;
+					lastLineEndPos = this.input.length;
+					continue;
+				}
 				break;
 			}
 		}
-		const currLine = this.input.slice(currLineStart, Math.max(0, currLineEnd));
-		const lineOffset = this.input.slice(currLineStart, start);
-		throw new Error([
-			`${prefix}: ${msg} @ ${start}`,
-			currLine,
-			lineOffset.replaceAll(/[^\t]/g, " ") + "^", // todo proper width calculation
-		].join("\n"));
+		const lines: string[] = [
+			`${msg} @ ${start}`,
+		];
+		if (firstLineStartPos < currentLineStartPos) {
+			lines.push(this.input.slice(firstLineStartPos, currentLineStartPos - 1));
+		}
+		lines.push(
+			this.input.slice(currentLineStartPos, Math.max(0, currentLineEndPos)),
+			this.input.slice(currentLineStartPos, start).replaceAll(/[^\t]/g, " ") + "^", // todo proper width calculation
+		);
+		if (currentLineEndPos < lastLineEndPos) {
+			lines.push(this.input.slice(currentLineEndPos + 1, lastLineEndPos));
+		}
+		return lines.join("\n");
+	}
+
+	croak(prefix: string, msg: string, start: number): never {
+		throw new Error(this.messageAt(`${prefix}: ${msg}`, start));
 	}
 }

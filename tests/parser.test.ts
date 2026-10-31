@@ -470,19 +470,45 @@ type Alias = Bar
 				trailingComments: [],
 			}],
 		);
+
+		assertEquals(parser.parse("type (\n\tFoo int\n\tBar string\n)"), [
+			{
+				leadingComments: [],
+				name: "Foo",
+				params: [],
+				isAlias: false,
+				tp: { kind: TypeExprKind.Named, pkg: null, name: "int", args: [] },
+				trailingComments: [],
+			},
+			{
+				leadingComments: [],
+				name: "Bar",
+				params: [],
+				isAlias: false,
+				tp: { kind: TypeExprKind.Named, pkg: null, name: "string", args: [] },
+				trailingComments: [],
+			},
+		]);
 	});
 
 	await t.step("parse errors", function () {
 		// unsupported syntax
-		assertThrows(() => parser.parse("type ( Foo int )"));
 		assertThrows(() => parser.parse("type Foo[S ~[]E, E any] = int"));
+
+		assertThrows(
+			() => {
+				parser.parse("type {");
+			},
+			Error,
+			"Parse: unexpected token '{' @",
+		);
 
 		assertThrows(
 			() => {
 				parser.parse("type struct");
 			},
 			Error,
-			"Parse: expected <identifier> but got 'struct' @",
+			"Parse: unexpected token 'struct' @",
 		);
 
 		assertThrows(

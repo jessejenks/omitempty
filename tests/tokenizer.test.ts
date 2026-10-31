@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from "@std/assert";
-import { KeywordKind, Token, Tokenizer, TokenKind } from "../src/tokenizer.ts";
+import { KeywordKind, Semi, Token, Tokenizer, TokenKind } from "../src/tokenizer.ts";
 
 Deno.test("Tokenizer", async function (t) {
 	const tokenizer = new Tokenizer();
@@ -98,5 +98,124 @@ type PerfectlyValid struct {
 
 		tokenizer.setIndex(54);
 		assertThrows(() => tokenizer.next(), "Tokenizer: unrecognized character '/' @");
+	});
+
+	await t.step("error message formatting", function () {
+		tokenizer.setInput([
+			"tok1 // comment",
+			"  /* first",
+			"   * second",
+			"   */",
+			"  tok2 { tok3 } \ttok4",
+			"\ttok5",
+			" \t tok6",
+		].join("\n"));
+		const tokens: Exclude<Token, Semi>[] = [];
+		while (tokenizer.peek().kind !== TokenKind.EOF) {
+			const tok = tokenizer.next();
+			if (tok.kind === TokenKind.Semi) {
+				continue;
+			}
+			tokens.push(tok);
+		}
+
+		assertEquals(
+			tokenizer.messageAt("message", tokens[0].start, 0, 0),
+			[
+				"message @ 0",
+				"tok1 // comment",
+				"^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[1].start, 0, 0),
+			[
+				"message @ 5",
+				"tok1 // comment",
+				"     ^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[2].start, 0, 0),
+			[
+				"message @ 18",
+				"  /* first",
+				"  ^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[2].start + 14, 1, 1),
+			[
+				"message @ 32",
+				"  /* first",
+				"   * second",
+				"     ^",
+				"   */",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[3].start, 0, 0),
+			[
+				"message @ 47",
+				"  tok2 { tok3 } \ttok4",
+				"  ^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[4].start, 0, 0),
+			[
+				"message @ 52",
+				"  tok2 { tok3 } \ttok4",
+				"       ^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[5].start, 0, 0),
+			[
+				"message @ 54",
+				"  tok2 { tok3 } \ttok4",
+				"         ^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[6].start, 0, 0),
+			[
+				"message @ 59",
+				"  tok2 { tok3 } \ttok4",
+				"              ^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[7].start, 0, 0),
+			[
+				"message @ 62",
+				"  tok2 { tok3 } \ttok4",
+				"                \t^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[8].start, 0, 0),
+			[
+				"message @ 68",
+				"\ttok5",
+				"\t^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[9].start, 0, 0),
+			[
+				"message @ 76",
+				" \t tok6",
+				" \t ^",
+			].join("\n"),
+		);
+		assertEquals(
+			tokenizer.messageAt("message", tokens[9].start + 20, 0, 0),
+			[
+				"message @ 79",
+				" \t tok6",
+				" \t    ^",
+			].join("\n"),
+		);
 	});
 });
