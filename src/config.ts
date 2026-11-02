@@ -45,6 +45,32 @@ export function parseConfig(text: string, defaultConfig: Config): Config {
 		skip = parseStringOrStringArray("skip", json.skip);
 	}
 
+	let replacements: Record<string, string> = defaultConfig.replacements;
+	if ("replacements" in json) {
+		const reps = json.replacements;
+		if (typeof reps !== "object" || reps === null || Array.isArray(reps)) {
+			throw new Error(`Config error: "replacements" must be an object`);
+		}
+		replacements = {};
+		for (let [goType, tsType] of Object.entries(reps)) {
+			if (typeof tsType !== "string" && !Array.isArray(tsType)) {
+				throw new Error(
+					`Config error: replacements["${goType}"] must be a string, OR an array of strings`,
+				);
+			}
+			if (Array.isArray(tsType)) {
+				tsType = tsType.join("\n");
+			}
+			tsType = tsType.trim();
+			if (tsType === "") {
+				throw new Error(
+					`Config error: replacements["${goType}"] must be non-empty`,
+				);
+			}
+			replacements[goType] = tsType;
+		}
+	}
+
 	let substitutions: Record<string, string> = defaultConfig.substitutions;
 	if ("substitutions" in json) {
 		const subs = json.substitutions;
@@ -61,7 +87,7 @@ export function parseConfig(text: string, defaultConfig: Config): Config {
 			tsType = tsType.trim();
 			if (tsType === "" || tsType.includes("\n")) {
 				throw new Error(
-					`Config error: substitutions["${goType.replaceAll("\n", "\\n")}"] must be a non-empty, single-line string`,
+					`Config error: substitutions["${goType}"] must be a non-empty, single-line string`,
 				);
 			}
 			substitutions[goType] = tsType;
@@ -71,6 +97,7 @@ export function parseConfig(text: string, defaultConfig: Config): Config {
 		docComment,
 		preamble,
 		skip,
+		replacements,
 		substitutions,
 	};
 }

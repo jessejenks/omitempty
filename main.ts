@@ -20,6 +20,7 @@ function help() {
 	console.error("  -d | --doc-comment [line]+        doc comment to include at start of file");
 	console.error("  -p | --preamble    [line]+        preamble after doc comments");
 	console.error("  --skip             [name]+        skip declarations");
+	console.error("  --rep              [name=def]+    type declaration replacements");
 	console.error("  --sub              [from=to]+     type substitutions");
 	console.error("  --version-comment                 include version number at beginning of doc comments.");
 	console.error("                                    default true. use --no-version-comment to disable");
@@ -45,6 +46,23 @@ function getIndentOptions(spaces: string | undefined) {
 	return { useTabs, tabWidth };
 }
 
+function getReplacementsOverrides(reps: string[]): LowerOptions["replacements"] {
+	if (reps === undefined) {
+		return {};
+	}
+	const overrides: LowerOptions["replacements"] = {};
+	for (const r of reps) {
+		const splt = r.split("=", 2);
+		if (splt.length !== 2) {
+			console.error('invalid rep option, must be of the form "name=def"');
+			help();
+			process.exit(1);
+		}
+		overrides[splt[0].trim()] = splt[1].trim();
+	}
+	return overrides;
+}
+
 function getSubstitutionOverrides(subs: string[]): LowerOptions["substitutions"] {
 	if (subs === undefined) {
 		return {};
@@ -64,8 +82,8 @@ function getSubstitutionOverrides(subs: string[]): LowerOptions["substitutions"]
 
 const args = parseArgs(process.argv.slice(2), {
 	boolean: ["help", "version", "version-comment"],
-	string: ["config", "spaces", "doc-comment", "preamble", "skip", "sub"],
-	collect: ["doc-comment", "preamble", "skip", "sub"],
+	string: ["config", "spaces", "doc-comment", "preamble", "skip", "rep", "sub"],
+	collect: ["doc-comment", "preamble", "skip", "rep", "sub"],
 	negatable: ["version-comment"],
 	default: { "version-comment": true },
 	alias: { "h": "help", "v": "version", "s": "spaces", "c": "config", "d": "doc-comment", "p": "preamble" },
@@ -92,11 +110,13 @@ const defaultConfig: Config = {
 	docComment: args["version-comment"] ? [`Generated with omitempty v${denojson.version}`] : [],
 	preamble: [],
 	skip: [],
+	replacements: {},
 	substitutions: {},
 };
 let config: Config = args.config === undefined
 	? defaultConfig
 	: parseConfig(fs.readFileSync(args.config, "utf8"), defaultConfig);
+const replacementsOverrides = getReplacementsOverrides(args.rep);
 const substitutionOverrides = getSubstitutionOverrides(args.sub);
 config = {
 	...config,
@@ -107,6 +127,10 @@ config = {
 		: config.docComment,
 	preamble: args.preamble.length > 0 ? args.preamble : config.preamble,
 	skip: args.skip.length > 0 ? args.skip : config.skip,
+	replacements: {
+		...config.replacements,
+		...replacementsOverrides,
+	},
 	substitutions: {
 		...config.substitutions,
 		...substitutionOverrides,

@@ -2,13 +2,14 @@ import { assertEquals, assertThrows } from "@std/assert";
 import { Config, parseConfig } from "../src/config.ts";
 
 Deno.test("Config", async function (t) {
-	const empty: Config = { docComment: [], preamble: [], skip: [], substitutions: {} };
+	const empty: Config = { docComment: [], preamble: [], skip: [], replacements: {}, substitutions: {} };
 
 	await t.step("valid", function () {
 		assertEquals(parseConfig("{}", empty), {
 			docComment: [],
 			preamble: [],
 			skip: [],
+			replacements: {},
 			substitutions: {},
 		});
 		assertEquals(
@@ -16,12 +17,14 @@ Deno.test("Config", async function (t) {
 				docComment: ["default doc"],
 				preamble: ["default preamble"],
 				skip: ["default skip"],
+				replacements: { "default": "rep" },
 				substitutions: { "default": "sub" },
 			}),
 			{
 				docComment: ["default doc"],
 				preamble: ["default preamble"],
 				skip: ["default skip"],
+				replacements: { "default": "rep" },
 				substitutions: { "default": "sub" },
 			},
 		);
@@ -86,11 +89,22 @@ Deno.test("Config", async function (t) {
 			},
 		);
 		assertEquals(
+			parseConfig('{ "replacements": { "Foo": "number", "Local": ["{", "bar: Baz,", "}"] } }', empty),
+			{
+				docComment: [],
+				preamble: [],
+				skip: [],
+				replacements: { "Foo": "number", "Local": ["{", "bar: Baz,", "}"].join("\n") },
+				substitutions: {},
+			},
+		);
+		assertEquals(
 			parseConfig('{ "substitutions": { "time.Duration": "number", "Local": " string | null " } }', empty),
 			{
 				docComment: [],
 				preamble: [],
 				skip: [],
+				replacements: {},
 				substitutions: { "time.Duration": "number", "Local": "string | null" },
 			},
 		);
@@ -109,6 +123,11 @@ Deno.test("Config", async function (t) {
 			Error,
 			`"skip" must be a string or array of strings`,
 		);
+		assertThrows(() => parseConfig('{ "replacements": [] }', empty), Error, `"replacements" must be an object`);
+		assertThrows(() => parseConfig('{ "replacements": {"Foo": 1} }', empty), Error, `replacements["Foo"]`);
+		assertThrows(() => parseConfig('{ "replacements": {"Foo": ""} }', empty), Error, `replacements["Foo"]`);
+		assertThrows(() => parseConfig('{ "replacements": {"Foo": []} }', empty), Error, `replacements["Foo"]`);
+		assertThrows(() => parseConfig('{ "replacements": {"Foo": ["", ""]} }', empty), Error, `replacements["Foo"]`);
 		assertThrows(() => parseConfig('{ "substitutions": [] }', empty), Error, `"substitutions" must be an object`);
 		assertThrows(() => parseConfig('{ "substitutions": { "Foo": 1 } }', empty), Error, `substitutions["Foo"]`);
 		assertThrows(() => parseConfig('{ "substitutions": { "Foo": "" } }', empty), Error, `substitutions["Foo"]`);

@@ -3,11 +3,13 @@ import * as ir from "./ir.ts";
 
 export type LowerOptions = {
 	skip: string[];
+	replacements: Record<string, string>;
 	substitutions: Record<string, string>;
 };
 
 const defaultOptions: LowerOptions = {
 	skip: [],
+	replacements: {},
 	substitutions: {},
 };
 
@@ -23,7 +25,9 @@ function lowerDeclaration(decl: ast.TypeDecl, options: LowerOptions): ir.TypeDec
 		leadingComments: decl.leadingComments,
 		name: decl.name,
 		params: decl.params,
-		tp: lowerType(decl.tp, options),
+		tp: options.replacements[decl.name]
+			? { kind: ir.TypeExprKind.Raw, text: options.replacements[decl.name] }
+			: lowerType(decl.tp, options),
 		trailingComments: decl.trailingComments,
 	};
 }

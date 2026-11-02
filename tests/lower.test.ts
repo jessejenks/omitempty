@@ -280,6 +280,7 @@ type Foo struct {
 	await t.step("skip", function () {
 		const options: LowerOptions = {
 			skip: ["Skipped"],
+			replacements: {},
 			substitutions: {},
 		};
 		const lowerWith = (input: string) => lower(parser.parse(input), options);
@@ -298,9 +299,25 @@ type Foo struct {
 		}]);
 	});
 
+	await t.step("replacements", function () {
+		const options: LowerOptions = {
+			skip: [],
+			replacements: {
+				"Foo": "string | number",
+				"Bar": "{\n\tbaz: string | null,\n}",
+			},
+			substitutions: {},
+		};
+		const lowerWith = (input: string) => lower(parser.parse(input), options)[0].tp;
+		assertEquals(lowerWith("type Unchanged int"), { kind: TypeExprKind.Ref, name: "number", args: [] });
+		assertEquals(lowerWith("type Foo int"), { kind: TypeExprKind.Raw, text: "string | number" });
+		assertEquals(lowerWith("type Bar int"), { kind: TypeExprKind.Raw, text: "{\n\tbaz: string | null,\n}" });
+	});
+
 	await t.step("substitutions", function () {
 		const options: LowerOptions = {
 			skip: [],
+			replacements: {},
 			substitutions: {
 				"time.Duration": "number",
 				"json.RawMessage": "unknown",
@@ -336,6 +353,6 @@ type Foo struct {
 		assertThrows(() => lowerWith("type Foo Local[int]"), Error, `"Local" has type arguments`);
 
 		options.substitutions["interface"] = "unknown";
-		assertEquals(lowerWith("type Foo interface{}"), { kind: TypeExprKind.Ref, name: "unknown", args: [] }); // default
+		assertEquals(lowerWith("type Foo interface{}"), { kind: TypeExprKind.Ref, name: "unknown", args: [] });
 	});
 });

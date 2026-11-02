@@ -103,6 +103,14 @@ A general configuration file looks like this
 	"docComment": ["My Name", "Copyright 2026"],
 	"preamble": ["import * as foo from \"./bar\";"],
 	"skip": ["Skipped"],
+	"replacements": {
+		"Replaced": [
+			"{",
+			"\t// can be passed as lines",
+			"\tkey: string | null;",
+			"}"
+		]
+	},
 	"substitutions": {
 		"time.Time": "string"
 	}
@@ -123,6 +131,9 @@ type Bar struct {
 
 // This is not included in the final output
 type Skipped = alias.Skipped
+
+// This is included, but the declaration is replaced
+type Replaced = pkg.Foo
 ```
 
 ```sh
@@ -146,6 +157,12 @@ export type Bar = {
 	X: number;
 	Y: boolean;
 };
+
+// This is included, but the declaration is replaced
+export type Replaced = {
+	// can be passed as lines
+	key: string | null;
+};
 ```
 
 ## Command Line Usage
@@ -159,6 +176,7 @@ omitempty example.go \
 	--doc-comment "Copyright 2026" \
 	--preamble "import * as foo from \"./bar\";" \
 	--skip Skipped \
+	--rep $'Replaced={\n\t// can be passed as lines\n\tkey: string | null;\n}' \
 	--sub "time.Time=string"
 ```
 

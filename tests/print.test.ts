@@ -56,7 +56,10 @@ Deno.test("Writer", async function (t) {
 
 Deno.test("Printer", async function (t) {
 	const parser = new Parser();
-	const printer = new Printer({ docComment: [], preamble: [], skip: [], substitutions: {} }, new Writer());
+	const printer = new Printer(
+		{ docComment: [], preamble: [], skip: [], replacements: {}, substitutions: {} },
+		new Writer(),
+	);
 	const print = (input: string) => printer.printDeclarations(lower(parser.parse(input)));
 
 	const lines = (...lines: string[]) => lines.join("\n");
@@ -278,7 +281,10 @@ Deno.test("Printer", async function (t) {
 	});
 
 	await t.step("writer options", function () {
-		const spaces = new Printer({ docComment: [], preamble: [], skip: [], substitutions: {} }, new Writer(false, 2));
+		const spaces = new Printer(
+			{ docComment: [], preamble: [], skip: [], replacements: {}, substitutions: {} },
+			new Writer(false, 2),
+		);
 		assertEquals(
 			spaces.printDeclarations(lower(parser.parse(lines(
 				"type Foo struct {",
@@ -304,6 +310,7 @@ Deno.test("Printer", async function (t) {
 				docComment: ["first line", "second line"],
 				preamble: [],
 				skip: [],
+				replacements: {},
 				substitutions: {},
 			}, ""),
 			lines(
@@ -318,6 +325,7 @@ Deno.test("Printer", async function (t) {
 				docComment: ["first line", "second line"],
 				preamble: [],
 				skip: [],
+				replacements: {},
 				substitutions: {},
 			}, "type Foo int"),
 			lines(
@@ -335,6 +343,7 @@ Deno.test("Printer", async function (t) {
 				docComment: [],
 				preamble: ['import * as foo from "foo.ts";'],
 				skip: [],
+				replacements: {},
 				substitutions: {},
 			}, "type Foo = foo.Foo"),
 			lines(
@@ -349,6 +358,7 @@ Deno.test("Printer", async function (t) {
 				docComment: ["first line", "second line"],
 				preamble: ['import * as foo from "foo.ts";'],
 				skip: [],
+				replacements: {},
 				substitutions: {},
 			}, "type Foo = foo.Foo"),
 			lines(
@@ -369,6 +379,7 @@ Deno.test("Printer", async function (t) {
 			docComment: [],
 			preamble: [],
 			skip: [],
+			replacements: {},
 			substitutions: { "time.Duration": "number", "Local": "string | null", "opt.Option": "Maybe" },
 		};
 		const printWith = (input: string) => printer.printDeclarations(lower(parser.parse(input), options));
