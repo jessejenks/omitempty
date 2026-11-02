@@ -14,16 +14,16 @@ function version() {
 
 function help() {
 	console.error(`omitempty v${denojson.version}`);
-	console.error("  <input.go>                input go file");
-	console.error("  --spaces   [n]            output with indentation of n spaces instead of tab characters");
-	console.error("  --config   <config.json>  optional config file");
-	console.error("  --sub      [from=to]      inline named type substitutions, can be passed multiple times");
-}
-
-function usage() {
-	console.error(
-		"Usage: omitempty <input.go> [--spaces n] [--config <config.json>] [--sub from=to]+",
-	);
+	console.error("  <input.go>                   input go file");
+	console.error("  -s | --spaces      [n]            output with indentation of n spaces instead of tab characters");
+	console.error("  -c | --config      <config.json>  optional config file");
+	console.error("  -d | --doc-comment [line]+        doc comment to include at start of file");
+	console.error("  -p | --preamble    [line]+        preamble after doc comments");
+	console.error("  --skip             [name]+        skip declarations");
+	console.error("  --sub              [from=to]+     type substitutions");
+	console.error("  --version-comment                 include version number at beginning of doc comments.");
+	console.error("                                    default true. use --no-version-comment to disable");
+	console.error("A plus after an option indicates that it may be passed multiple times");
 }
 
 function getIndentOptions(spaces: string | undefined) {
@@ -35,11 +35,11 @@ function getIndentOptions(spaces: string | undefined) {
 	try {
 		tabWidth = Number.parseInt(spaces);
 	} catch {
-		usage();
+		help();
 		process.exit(1);
 	}
 	if (!Number.isFinite(tabWidth) || Number.isNaN(tabWidth)) {
-		usage();
+		help();
 		process.exit(1);
 	}
 	return { useTabs, tabWidth };
@@ -53,7 +53,8 @@ function getSubstitutionOverrides(subs: string[]): LowerOptions["substitutions"]
 	for (const s of subs) {
 		const splt = s.split("=", 2);
 		if (splt.length !== 2) {
-			usage();
+			console.error('invalid sub option, must be of the form "name=name"');
+			help();
 			process.exit(1);
 		}
 		overrides[splt[0].trim()] = splt[1].trim();
@@ -62,9 +63,12 @@ function getSubstitutionOverrides(subs: string[]): LowerOptions["substitutions"]
 }
 
 const args = parseArgs(process.argv.slice(2), {
-	boolean: ["help", "version"],
-	string: ["config", "spaces", "sub"],
-	collect: ["sub"],
+	boolean: ["help", "version", "version-comment"],
+	string: ["config", "spaces", "doc-comment", "preamble", "skip", "sub"],
+	collect: ["doc-comment", "preamble", "skip", "sub"],
+	negatable: ["version-comment"],
+	default: { "version-comment": true },
+	alias: { "h": "help", "v": "version", "s": "spaces", "c": "config", "d": "doc-comment", "p": "preamble" },
 });
 
 if (args.help) {
@@ -79,23 +83,34 @@ if (args.version) {
 
 const inputPath = args._[0];
 if (typeof inputPath !== "string") {
-	usage();
+	console.error("invalid path to input file");
+	help();
 	process.exit(1);
 }
 const { useTabs, tabWidth } = getIndentOptions(args.spaces);
 const defaultConfig: Config = {
-	docComment: [`Generated with omitempty v${denojson.version}`],
+	docComment: args["version-comment"] ? [`Generated with omitempty v${denojson.version}`] : [],
 	preamble: [],
 	skip: [],
 	substitutions: {},
 };
-const config: Config = args.config === undefined
+let config: Config = args.config === undefined
 	? defaultConfig
 	: parseConfig(fs.readFileSync(args.config, "utf8"), defaultConfig);
-const overrides = getSubstitutionOverrides(args.sub);
-config.substitutions = {
-	...config.substitutions,
-	...overrides,
+const substitutionOverrides = getSubstitutionOverrides(args.sub);
+config = {
+	...config,
+	docComment: args["doc-comment"].length > 0
+		? args["version-comment"]
+			? [`Generated with omitempty v${denojson.version}`, ...args["doc-comment"]]
+			: args["doc-comment"]
+		: config.docComment,
+	preamble: args.preamble.length > 0 ? args.preamble : config.preamble,
+	skip: args.skip.length > 0 ? args.skip : config.skip,
+	substitutions: {
+		...config.substitutions,
+		...substitutionOverrides,
+	},
 };
 const input = fs.readFileSync(inputPath, "utf8");
 try {

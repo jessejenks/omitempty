@@ -100,7 +100,7 @@ A general configuration file looks like this
 
 ```json
 {
-	"docComment": ["Copyright 2026"],
+	"docComment": ["My Name", "Copyright 2026"],
 	"preamble": ["import * as foo from \"./bar\";"],
 	"skip": ["Skipped"],
 	"substitutions": {
@@ -108,6 +108,8 @@ A general configuration file looks like this
 	}
 }
 ```
+
+Each of `docComment`, `preamble`, and `skip` may be a string or array of strings.
 
 On this input
 
@@ -132,6 +134,7 @@ produces
 ```ts
 /*
  * Generated with omitempty v1.1.0
+ * My Name
  * Copyright 2026
  */
 
@@ -144,3 +147,20 @@ export type Bar = {
 	Y: boolean;
 };
 ```
+
+## Command Line Usage
+
+Every config field has a corresponding command line option. So the previous example could have been done without a
+config file with this invocation.
+
+```sh
+omitempty example.go \
+	--doc-comment "My Name" \
+	--doc-comment "Copyright 2026" \
+	--preamble "import * as foo from \"./bar\";" \
+	--skip Skipped \
+	--sub "time.Time=string"
+```
+
+The first line `"Generated with omitempty v1.1.0"` is always included by default. This can be removed with the
+`--no-version-number` flag.
