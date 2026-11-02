@@ -59,7 +59,7 @@ omitempty example.go --sub "time.Time=string"
 
 ```ts
 /*
- * Generated with omitempty v1.0.0
+ * Generated with omitempty v1.1.0
  */
 
 // The type Foo is for XYZ
@@ -131,7 +131,7 @@ produces
 
 ```ts
 /*
- * Generated with omitempty v1.0.0
+ * Generated with omitempty v1.1.0
  * Copyright 2026
  */
 
