@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import { lower } from "../src/lower.ts";
 import { Parser } from "../src/parser.ts";
 import { Printer, Writer } from "../src/print.ts";
+import { Config } from "../src/config.ts";
 
 Deno.test("Writer", async function (t) {
 	const writer = new Writer(false, 2);
@@ -55,28 +56,28 @@ Deno.test("Writer", async function (t) {
 
 Deno.test("Printer", async function (t) {
 	const parser = new Parser();
-	const printer = new Printer(new Writer());
+	const printer = new Printer({ docComment: [], preamble: [], skip: [], substitutions: {} }, new Writer());
 	const print = (input: string) => printer.printDeclarations(lower(parser.parse(input)));
 
 	const lines = (...lines: string[]) => lines.join("\n");
 
 	await t.step("named types", function () {
-		assertEquals(print("type Foo int"), lines("type Foo = number;"));
-		assertEquals(print("type Foo bool"), lines("type Foo = boolean;"));
-		assertEquals(print("type Foo string"), lines("type Foo = string;"));
-		assertEquals(print("type Foo Bar"), lines("type Foo = Bar;"));
-		assertEquals(print("type Foo = Bar"), lines("type Foo = Bar;"));
-		assertEquals(print("type Foo bar.Baz"), lines("type Foo = bar.Baz;"));
-		assertEquals(print("type Foo Bar[int, string]"), lines("type Foo = Bar<number, string>;"));
-		assertEquals(print("type Foo map[string][]int"), lines("type Foo = Record<string, number[]>;"));
+		assertEquals(print("type Foo int"), lines("export type Foo = number;"));
+		assertEquals(print("type Foo bool"), lines("export type Foo = boolean;"));
+		assertEquals(print("type Foo string"), lines("export type Foo = string;"));
+		assertEquals(print("type Foo Bar"), lines("export type Foo = Bar;"));
+		assertEquals(print("type Foo = Bar"), lines("export type Foo = Bar;"));
+		assertEquals(print("type Foo bar.Baz"), lines("export type Foo = bar.Baz;"));
+		assertEquals(print("type Foo Bar[int, string]"), lines("export type Foo = Bar<number, string>;"));
+		assertEquals(print("type Foo map[string][]int"), lines("export type Foo = Record<string, number[]>;"));
 	});
 
 	await t.step("struct fields", function () {
-		assertEquals(print("type Foo struct{}"), lines("type Foo = {};"));
+		assertEquals(print("type Foo struct{}"), lines("export type Foo = {};"));
 		assertEquals(
 			print("type Foo struct { X int }"),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tX: number;",
 				"};",
 			),
@@ -84,7 +85,7 @@ Deno.test("Printer", async function (t) {
 		assertEquals(
 			print('type Foo struct { X int `json:"x"` }'),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tx: number;",
 				"};",
 			),
@@ -92,7 +93,7 @@ Deno.test("Printer", async function (t) {
 		assertEquals(
 			print('type Foo struct { X int `json:"x,omitempty"` }'),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tx?: number;",
 				"};",
 			),
@@ -100,16 +101,16 @@ Deno.test("Printer", async function (t) {
 		assertEquals(
 			print('type Foo struct { X int `json:",omitempty"` }'),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tX?: number;",
 				"};",
 			),
 		);
-		assertEquals(print('type Foo struct { X int `json:"-"` }'), lines("type Foo = {};"));
+		assertEquals(print('type Foo struct { X int `json:"-"` }'), lines("export type Foo = {};"));
 		assertEquals(
 			print("type Foo struct { A, B int }"),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tA: number;",
 				"\tB: number;",
 				"};",
@@ -118,7 +119,7 @@ Deno.test("Printer", async function (t) {
 		assertEquals(
 			print('type Foo struct { X int `json:"$x_1"` }'),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\t$x_1: number;",
 				"};",
 			),
@@ -126,7 +127,7 @@ Deno.test("Printer", async function (t) {
 		assertEquals(
 			print('type Foo struct { X int `json:"f-g"` }'),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				'\t"f-g": number;',
 				"};",
 			),
@@ -134,7 +135,7 @@ Deno.test("Printer", async function (t) {
 		assertEquals(
 			print('type Foo struct { X int `json:"1x"` }'),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				'\t"1x": number;',
 				"};",
 			),
@@ -142,7 +143,7 @@ Deno.test("Printer", async function (t) {
 		assertEquals(
 			print('type Foo struct { Bar `json:"bar"` }'),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tbar: Bar;",
 				"};",
 			),
@@ -150,7 +151,7 @@ Deno.test("Printer", async function (t) {
 		assertEquals(
 			print('type Foo struct { *Bar `json:"bar"` }'),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tbar: Bar | null;",
 				"};",
 			),
@@ -167,7 +168,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\ta: {",
 				"\t\tb: number;",
 				"\t};",
@@ -183,7 +184,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\ta: {",
 				"\t\tb: number;",
 				"\t}[];",
@@ -200,10 +201,10 @@ Deno.test("Printer", async function (t) {
 			)),
 			lines(
 				"// Foo doc",
-				"type Foo = number;",
+				"export type Foo = number;",
 			),
 		);
-		assertEquals(print("type Foo int // Foo trailing"), lines("type Foo = number; // Foo trailing"));
+		assertEquals(print("type Foo int // Foo trailing"), lines("export type Foo = number; // Foo trailing"));
 		assertEquals(
 			print(lines(
 				"type Foo struct {",
@@ -212,7 +213,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\t// X doc",
 				"\tX: number; // X trailing",
 				"};",
@@ -226,7 +227,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tX: number;",
 				"\t// end",
 				"};",
@@ -239,7 +240,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\t// empty",
 				"};",
 			),
@@ -251,7 +252,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\tA: number;",
 				"\tB: number; // shared",
 				"};",
@@ -269,15 +270,15 @@ Deno.test("Printer", async function (t) {
 			)),
 			lines(
 				"// Foo doc",
-				"type Foo = number;",
+				"export type Foo = number;",
 				"",
-				"type Bar = string;",
+				"export type Bar = string;",
 			),
 		);
 	});
 
 	await t.step("writer options", function () {
-		const spaces = new Printer(new Writer(false, 2));
+		const spaces = new Printer({ docComment: [], preamble: [], skip: [], substitutions: {} }, new Writer(false, 2));
 		assertEquals(
 			spaces.printDeclarations(lower(parser.parse(lines(
 				"type Foo struct {",
@@ -285,7 +286,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)))),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"  A: {",
 				"    B: number;",
 				"  };",
@@ -294,22 +295,94 @@ Deno.test("Printer", async function (t) {
 		);
 	});
 
+	await t.step("config", function () {
+		const printWith = (options: Config, input: string) =>
+			new Printer(options, new Writer()).printDeclarations(lower(parser.parse(input), options));
+
+		assertEquals(
+			printWith({
+				docComment: ["first line", "second line"],
+				preamble: [],
+				skip: [],
+				substitutions: {},
+			}, ""),
+			lines(
+				"/*",
+				" * first line",
+				" * second line",
+				" */",
+			),
+		);
+		assertEquals(
+			printWith({
+				docComment: ["first line", "second line"],
+				preamble: [],
+				skip: [],
+				substitutions: {},
+			}, "type Foo int"),
+			lines(
+				"/*",
+				" * first line",
+				" * second line",
+				" */",
+				"",
+				"export type Foo = number;",
+			),
+		);
+
+		assertEquals(
+			printWith({
+				docComment: [],
+				preamble: ['import * as foo from "foo.ts";'],
+				skip: [],
+				substitutions: {},
+			}, "type Foo = foo.Foo"),
+			lines(
+				'import * as foo from "foo.ts";',
+				"",
+				"export type Foo = foo.Foo;",
+			),
+		);
+
+		assertEquals(
+			printWith({
+				docComment: ["first line", "second line"],
+				preamble: ['import * as foo from "foo.ts";'],
+				skip: [],
+				substitutions: {},
+			}, "type Foo = foo.Foo"),
+			lines(
+				"/*",
+				" * first line",
+				" * second line",
+				" */",
+				"",
+				'import * as foo from "foo.ts";',
+				"",
+				"export type Foo = foo.Foo;",
+			),
+		);
+	});
+
 	await t.step("substitutions", function () {
-		const options = {
+		const options: Config = {
+			docComment: [],
+			preamble: [],
+			skip: [],
 			substitutions: { "time.Duration": "number", "Local": "string | null", "opt.Option": "Maybe" },
 		};
 		const printWith = (input: string) => printer.printDeclarations(lower(parser.parse(input), options));
-		assertEquals(printWith("type Foo []time.Duration"), lines("type Foo = number[];"));
-		assertEquals(printWith("type Foo Local"), lines("type Foo = string | null;"));
-		assertEquals(printWith("type Foo []Local"), lines("type Foo = (string | null)[];"));
-		assertEquals(printWith("type Foo *Local"), lines("type Foo = (string | null) | null;"));
-		assertEquals(printWith("type Foo opt.Option[[]*int]"), lines("type Foo = Maybe<(number | null)[]>;"));
+		assertEquals(printWith("type Foo []time.Duration"), lines("export type Foo = number[];"));
+		assertEquals(printWith("type Foo Local"), lines("export type Foo = string | null;"));
+		assertEquals(printWith("type Foo []Local"), lines("export type Foo = (string | null)[];"));
+		assertEquals(printWith("type Foo *Local"), lines("export type Foo = (string | null) | null;"));
+		assertEquals(printWith("type Foo opt.Option[[]*int]"), lines("export type Foo = Maybe<(number | null)[]>;"));
 	});
 
 	await t.step("embedded only struct", function () {
-		assertEquals(print("type Foo struct { Embedded }"), lines("type Foo = Embedded;"));
-		assertEquals(print("type Foo struct { E1; E2 }"), lines("type Foo = E1 & E2;"));
-		assertEquals(print("type Foo []struct{ Embedded }"), lines("type Foo = Embedded[];"));
+		assertEquals(print("type Foo struct { Embedded }"), lines("export type Foo = Embedded;"));
+		assertEquals(print("type Foo struct { E1; E2 }"), lines("export type Foo = E1 & E2;"));
+		assertEquals(print("type Foo []struct{ Embedded }"), lines("export type Foo = Embedded[];"));
 		assertEquals(
 			print(lines(
 				"type Foo struct {",
@@ -318,7 +391,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo =",
+				"export type Foo =",
 				"\t// about Embedded",
 				"\t& Embedded;",
 			),
@@ -331,7 +404,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = {",
+				"export type Foo = {",
 				"\t// end",
 				"} & Embedded;",
 			),
@@ -339,10 +412,10 @@ Deno.test("Printer", async function (t) {
 	});
 
 	await t.step("precedence", function () {
-		assertEquals(print("type Foo []*int"), lines("type Foo = (number | null)[];"));
-		assertEquals(print("type Foo [][]*int"), lines("type Foo = (number | null)[][];"));
-		assertEquals(print("type Foo *[]int"), lines("type Foo = number[] | null;"));
-		assertEquals(print("type Foo map[string]*int"), lines("type Foo = Record<string, number | null>;"));
+		assertEquals(print("type Foo []*int"), lines("export type Foo = (number | null)[];"));
+		assertEquals(print("type Foo [][]*int"), lines("export type Foo = (number | null)[][];"));
+		assertEquals(print("type Foo *[]int"), lines("export type Foo = number[] | null;"));
+		assertEquals(print("type Foo map[string]*int"), lines("export type Foo = Record<string, number | null>;"));
 		assertEquals(
 			print(lines(
 				"type Foo []struct {",
@@ -351,7 +424,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = ({",
+				"export type Foo = ({",
 				"\tx: number;",
 				"} & Embedded)[];",
 			),
@@ -365,7 +438,7 @@ Deno.test("Printer", async function (t) {
 				"}",
 			)),
 			lines(
-				"type Foo = (",
+				"export type Foo = (",
 				"\t& {",
 				"\t\tx: number;",
 				"\t}",

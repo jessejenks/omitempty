@@ -58,11 +58,15 @@ omitempty example.go --sub "time.Time=string"
 ```
 
 ```ts
+/*
+ * Generated with omitempty v1.0.0
+ */
+
 // The type Foo is for XYZ
 // it has this doc comment
-type Foo = Record<number, string | null>[]; // trailing comment
+export type Foo = Record<number, string | null>[]; // trailing comment
 
-type Bar =
+export type Bar =
 	& {
 		// X is for XYZ
 		field_name?: boolean;
@@ -89,3 +93,54 @@ deno run --allow-read main.ts example.go --config config.json
 ```
 
 Note that command line substitutions will override config substitutions.
+
+## Configuration
+
+A general configuration file looks like this
+
+```json
+{
+	"docComment": ["Copyright 2026"],
+	"preamble": ["import * as foo from \"./bar\";"],
+	"skip": ["Skipped"],
+	"substitutions": {
+		"time.Time": "string"
+	}
+}
+```
+
+On this input
+
+```go
+type Foo []char
+
+type Bar struct {
+	X int
+	Y bool
+}
+
+// This is not included in the final output
+type Skipped = alias.Skipped
+```
+
+```sh
+omitempty example.go --config config.json
+```
+
+produces
+
+```ts
+/*
+ * Generated with omitempty v1.0.0
+ * Copyright 2026
+ */
+
+import * as foo from "./bar";
+
+export type Foo = char[];
+
+export type Bar = {
+	X: number;
+	Y: boolean;
+};
+```

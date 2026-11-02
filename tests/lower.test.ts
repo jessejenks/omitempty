@@ -277,8 +277,30 @@ type Foo struct {
 		});
 	});
 
+	await t.step("skip", function () {
+		const options: LowerOptions = {
+			skip: ["Skipped"],
+			substitutions: {},
+		};
+		const lowerWith = (input: string) => lower(parser.parse(input), options);
+		assertEquals(lowerWith("type Foo int\nleading for skipped\ntype Skipped string\ntype Bar bool"), [{
+			leadingComments: [],
+			name: "Foo",
+			params: [],
+			tp: { kind: TypeExprKind.Ref, name: "number", args: [] },
+			trailingComments: [],
+		}, {
+			leadingComments: [],
+			name: "Bar",
+			params: [],
+			tp: { kind: TypeExprKind.Ref, name: "boolean", args: [] },
+			trailingComments: [],
+		}]);
+	});
+
 	await t.step("substitutions", function () {
 		const options: LowerOptions = {
+			skip: [],
 			substitutions: {
 				"time.Duration": "number",
 				"json.RawMessage": "unknown",

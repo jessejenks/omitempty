@@ -3,7 +3,7 @@ import denojson from "./deno.json" with { type: "json" };
 import { parseArgs } from "@std/cli/parse-args";
 import fs from "node:fs";
 import process from "node:process";
-import { parseConfig } from "./src/config.ts";
+import { Config, parseConfig } from "./src/config.ts";
 import { lower, LowerOptions } from "./src/lower.ts";
 import { Parser } from "./src/parser.ts";
 import { Printer, Writer } from "./src/print.ts";
@@ -22,7 +22,7 @@ function help() {
 
 function usage() {
 	console.error(
-		"Usage: omitempty <input.go> [--config <config.json>] [--spaces n] [--sub from=to]+",
+		"Usage: omitempty <input.go> [--spaces n] [--config <config.json>] [--sub from=to]+",
 	);
 }
 
@@ -83,7 +83,15 @@ if (typeof inputPath !== "string") {
 	process.exit(1);
 }
 const { useTabs, tabWidth } = getIndentOptions(args.spaces);
-const config = args.config === undefined ? { substitutions: {} } : parseConfig(fs.readFileSync(args.config, "utf8"));
+const defaultConfig: Config = {
+	docComment: [`Generated with omitempty v${denojson.version}`],
+	preamble: [],
+	skip: [],
+	substitutions: {},
+};
+const config: Config = args.config === undefined
+	? defaultConfig
+	: parseConfig(fs.readFileSync(args.config, "utf8"), defaultConfig);
 const overrides = getSubstitutionOverrides(args.sub);
 config.substitutions = {
 	...config.substitutions,
@@ -92,7 +100,7 @@ config.substitutions = {
 const input = fs.readFileSync(inputPath, "utf8");
 try {
 	const decls = new Parser().parse(input);
-	console.log(new Printer(new Writer(useTabs, tabWidth)).printDeclarations(lower(decls, config)));
+	console.log(new Printer(config, new Writer(useTabs, tabWidth)).printDeclarations(lower(decls, config)));
 } catch (e) {
 	console.error(String(e));
 	process.exit(1);

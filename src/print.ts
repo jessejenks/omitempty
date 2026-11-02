@@ -1,3 +1,4 @@
+import { Config } from "./config.ts";
 import {
 	ArrayType,
 	Field,
@@ -104,12 +105,34 @@ export class Writer {
 }
 
 export class Printer {
-	constructor(protected writer: Writer) {}
+	constructor(protected config: Config, protected writer: Writer) {}
 
 	printDeclarations(decls: TypeDecl[]): string {
 		this.writer.reset();
+		let hasPrecedingLines = false;
+		if (this.config.docComment.length > 0) {
+			this.writer.write("/*");
+			for (let i = 0; i < this.config.docComment.length; i++) {
+				this.writer.newline();
+				this.writer.write(" * ");
+				this.writer.write(this.config.docComment[i]);
+			}
+			this.writer.newline();
+			this.writer.write(" */");
+			hasPrecedingLines = true;
+		}
+		if (this.config.preamble.length > 0) {
+			for (let i = 0; i < this.config.preamble.length; i++) {
+				if (i > 0 || hasPrecedingLines) {
+					this.writer.newline();
+					this.writer.newline();
+				}
+				this.writer.write(this.config.preamble[i]);
+			}
+			hasPrecedingLines = true;
+		}
 		for (let i = 0; i < decls.length; i++) {
-			if (i > 0) {
+			if (i > 0 || hasPrecedingLines) {
 				this.writer.newline();
 				this.writer.newline();
 			}
@@ -120,7 +143,7 @@ export class Printer {
 
 	printDeclaration(decl: TypeDecl) {
 		this.printLeadingComments(decl.leadingComments);
-		this.writer.write(`type ${decl.name} = `);
+		this.writer.write(`export type ${decl.name} = `);
 		this.printTypeExpr(decl.tp);
 		this.writer.write(";");
 		this.printTrailingComments(decl.trailingComments);

@@ -2,14 +2,19 @@ import * as ast from "./ast.ts";
 import * as ir from "./ir.ts";
 
 export type LowerOptions = {
+	skip: string[];
 	substitutions: Record<string, string>;
 };
 
 const defaultOptions: LowerOptions = {
+	skip: [],
 	substitutions: {},
 };
 
 export function lower(decls: ast.TypeDecl[], options = defaultOptions): ir.TypeDecl[] {
+	if (options.skip.length > 0) {
+		decls = decls.filter((decl) => !options.skip.includes(decl.name));
+	}
 	return decls.map((decl) => lowerDeclaration(decl, options));
 }
 
