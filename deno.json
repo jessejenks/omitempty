@@ -1,5 +1,5 @@
 {
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"tasks": {
 		"bundle": "deno bundle main.ts --minify --format cjs -o omitempty.cjs"
 	},

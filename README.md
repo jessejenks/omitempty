@@ -59,7 +59,7 @@ omitempty example.go --sub "time.Time=string"
 
 ```ts
 /*
- * Generated with omitempty v1.1.0
+ * Generated with omitempty v1.2.0
  */
 
 // The type Foo is for XYZ
@@ -133,7 +133,7 @@ produces
 
 ```ts
 /*
- * Generated with omitempty v1.1.0
+ * Generated with omitempty v1.2.0
  * My Name
  * Copyright 2026
  */
@@ -162,5 +162,5 @@ omitempty example.go \
 	--sub "time.Time=string"
 ```
 
-The first line `"Generated with omitempty v1.1.0"` is always included by default. This can be removed with the
+The first line `"Generated with omitempty v1.2.0"` is always included by default. This can be removed with the
 `--no-version-number` flag.
